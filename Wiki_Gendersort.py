@@ -54,10 +54,7 @@ def index(a, x):
     is not found.
     """
     i = bisect_left(a, x)
-    if i != len(a) and a[i] == x:
-        return(i)
-    else:
-        return(-1)
+    return i if i != len(a) and a[i] == x else -1
 
 
 def file_len(fname, encod):
@@ -70,21 +67,13 @@ def file_len(fname, encod):
 
 def countalpha(name):
     "Counts the number of alphabetical characters in a string"
-    i = 0
     chars = string.ascii_lowercase + string.ascii_uppercase
-    for c in name:
-        if unidecode(c) in chars:
-            i += 1
-    return(i)
+    return sum(1 for c in name if unidecode(c) in chars)
 
 
 def countvowel(name):
     "Counts the number of vowels in a string"
-    i = 0
-    for c in name:
-        if unidecode(c) in 'aeiouyAEIOUY':
-            i += 1
-    return(i)
+    return sum(1 for c in name if unidecode(c) in 'aeiouyAEIOUY')
 
 
 def lectdatalog(cwd, backup=True):
@@ -103,11 +92,10 @@ def lectdatalog(cwd, backup=True):
             bu_name = log_path.stem + '_bu%i' % nbulog + log_path.suffix
         copyfile(log_path, cwd / bu_name)
         if backup:
-            print('Copying ' + log_path.name + ' into ' + bu_name)
+            print(f'Copying {log_path.name} into {bu_name}')
 
-        print('Importing ' + log_path.stem)
-        with open(log_path) as f:
-            datalogtemp = f.read()
+        print(f'Importing {log_path.stem}')
+        datalogtemp = Path(log_path).read_text()
         datalogtemp = datalogtemp.split('\n\n')
         for d in datalogtemp:
             if len(d) != 0:

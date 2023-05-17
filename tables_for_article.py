@@ -25,11 +25,11 @@ def process_genderc():
     cwd = Path(__file__).parent.absolute()
     raw_file_path = cwd / 'data_compare' / 'raw' / 'nam_dict.txt'
     out_path = cwd / 'data_compare' / 'GendercOut.txt'
-    print('Importing file ' + raw_file_path.name)
+    print(f'Importing file {raw_file_path.name}')
     namdata = {}
     with open(raw_file_path, 'r', encoding='iso-8859-1') as raw_file:
         rec = 0
-        for lin in raw_file.readlines():
+        for lin in raw_file:
             if rec > 0 and rec < 3:
                 rec += 1
             if 'begin of name list' in lin:
@@ -38,9 +38,9 @@ def process_genderc():
                 dat = lin[:lin.index('    ')]
                 gend = dat[:3]
                 nam = dat[3:]
-                if ('M' in gend) and not ('F' in gend):
+                if 'M' in gend and 'F' not in gend:
                     gen = 'M'
-                elif ('F' in gend) and not ('M' in gend):
+                elif 'F' in gend and 'M' not in gend:
                     gen = 'F'
                 elif ('=' in gend):
                     gen = 'UNI'
@@ -59,7 +59,7 @@ def process_genderc():
                 else:
                     namdata[nam] = gen
 
-    print('Saving out file in ' + out_path.name)
+    print(f'Saving out file in {out_path.name}')
     with open(out_path, 'w', encoding='utf-8') as fileout:
         fileout.write('\n'.join([k + '\t' + v
                                  for k, v in namdata.items()]))
@@ -72,11 +72,11 @@ def process_uscensus():
     M_raw_file_path = cwd / 'data_compare' / 'raw' / 'Census Male names.txt'
     F_raw_file_path = cwd / 'data_compare' / 'raw' / 'Census Female names.txt'
     out_path = cwd / 'data_compare' / 'USCensusOut.txt'
-    print('Importing file ' + M_raw_file_path.name)
+    print(f'Importing file {M_raw_file_path.name}')
     M_occdata = {}
     namdata = {}
     with open(M_raw_file_path, 'r') as raw_file:
-        for lin in raw_file.readlines():
+        for lin in raw_file:
             ls = lin.split()
             nam = ls[0]
             occ = float(ls[1])
@@ -85,22 +85,20 @@ def process_uscensus():
             M_occdata[nam] = occ
             namdata[nam] = 'M'
 
-    print('Importing file ' + F_raw_file_path.name)
+    print(f'Importing file {F_raw_file_path.name}')
     with open(F_raw_file_path, 'r') as raw_file:
-        for lin in raw_file.readlines():
+        for lin in raw_file:
             ls = lin.split()
             nam = ls[0]
             occ = float(ls[1])
             if occ > 0.01:
-                if nam in M_occdata:
-                    if occ >= 3*M_occdata[nam]:
-                        namdata[nam] = 'F'
-                    elif occ >= 3*M_occdata[nam]:
-                        namdata[nam] = 'UNI'
-                else:
+                if (
+                    nam in M_occdata
+                    and occ >= 3 * M_occdata[nam]
+                    or nam not in M_occdata
+                ):
                     namdata[nam] = 'F'
-
-    print('Saving out file in ' + out_path.name)
+    print(f'Saving out file in {out_path.name}')
     with open(out_path, 'w', encoding='utf-8') as fileout:
         fileout.write('\n'.join([k + '\t' + v
                                  for k, v in namdata.items()]))
@@ -113,13 +111,13 @@ def process_genderchecker():
     raw_file_path = (cwd / 'data_compare' / 'raw' /
                      'GenderChecker Database Feb2020.csv')
     out_path = cwd / 'data_compare' / 'GenderCheckerOut.txt'
-    print('Importing file ' + raw_file_path.name)
+    print(f'Importing file {raw_file_path.name}')
     namdata = {}
     with open(raw_file_path, 'r', encoding='iso-8859-1') as raw_file:
         raw_file.readline()
-        for lin in raw_file.readlines():
+        for lin in raw_file:
             ls = lin.split(',')
-            nam = ','.join(ls[0:-1])
+            nam = ','.join(ls[:-1])
             gender = ls[-1]
             gen = 'UNK'
             if 'female' in gender.lower():
@@ -141,7 +139,7 @@ def process_genderchecker():
             else:
                 namdata[nam] = gen
 
-    print('Saving out file in ' + out_path.name)
+    print(f'Saving out file in {out_path.name}')
     with open(out_path, 'w', encoding='utf-8') as fileout:
         fileout.write('\n'.join([k + '\t' + v
                                  for k, v in namdata.items()]))
@@ -253,8 +251,7 @@ def table_compare(sort_path):
     # Imports log file data for gender assignation method
     log_path = cwd / 'NamesLog.txt'
     name_method = {}
-    with open(log_path) as f:
-        datalogtemp = f.read()
+    datalogtemp = Path(log_path).read_text()
     datalogtemp = datalogtemp.split('\n\n')
     for d in datalogtemp:
         if len(d) != 0:
@@ -336,9 +333,19 @@ def table_compare(sort_path):
                           for j in range(len(tables[i])-1)]
         print(' '*15 + '|' + center_string('Wiki-GenderSort',
                                            len(col_ids[:-1])*10-1) + '|')
-        print(center_string(sort_name, 15) + '|' +
-              '|'.join(col_ids[:-1]) + '|' +
-              center_string('Total', 9) + '|')
+        print(
+            (
+                (
+                    (
+                        f'{center_string(sort_name, 15)}|'
+                        + '|'.join(col_ids[:-1])
+                    )
+                    + '|'
+                )
+                + center_string('Total', 9)
+                + '|'
+            )
+        )
         for j, col_id in enumerate(col_ids[:-1]):
             print(' '*6 + col_id + '|' +
                   '|'.join(' %5.2f %% ' % (100*ppm/(10**6-ini_ppm))
@@ -399,9 +406,21 @@ def table_compare(sort_path):
           center_string('#TOKENS', 9) + '|' +
           center_string('OCC (%)', 9) + '|')
     for gender, gi in gender_dict.items():
-        print(center_string(gender, 15) + '|' +
-              center_string('%i' % (len(set(gender_tokens[gi]))), 9) + '|' +
-              ' %5.2f %% ' % (gender_ppm[gi]/10000) + '|')
+        print(
+            (
+                (
+                    (
+                        f'{center_string(gender, 15)}|'
+                        + center_string(
+                            '%i' % (len(set(gender_tokens[gi]))), 9
+                        )
+                    )
+                    + '|'
+                )
+                + ' %5.2f %% ' % (gender_ppm[gi] / 10000)
+                + '|'
+            )
+        )
     print()
     print('Total unique full names in WoS: %i' % wos_n_names)
     print('Total unique first name in WoS: %i' % len(names_ppm))
